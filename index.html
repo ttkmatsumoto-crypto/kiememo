@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="消えメモ">
+<meta name="theme-color" content="#ffffff">
+<title>消えメモ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #f3f4f6; min-height: 100dvh; display: flex; justify-content: center; }
+  #app { width: 100%; max-width: 430px; display: flex; flex-direction: column; min-height: 100dvh; position: relative; }
+
+  /* Header */
+  .header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 52px 20px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .header-title { font-size: 22px; font-weight: 800; color: #111827; letter-spacing: -0.5px; }
+  .header-sub { font-size: 10px; color: #9ca3af; font-weight: 600; letter-spacing: 2px; margin-top: 2px; }
+  .header-counts { text-align: right; }
+  .count-green { font-size: 13px; font-weight: 700; color: #059669; }
+  .count-violet { font-size: 13px; font-weight: 700; color: #7c3aed; margin-top: 2px; }
+  .count-label { font-size: 11px; font-weight: 500; color: #6b7280; }
+
+  /* Tabs */
+  .tab-bar { display: flex; margin: 12px; gap: 4px; background: #fff; border-radius: 16px; padding: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .tab-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 12px; border: none; background: transparent; font-size: 13px; font-weight: 700; color: #9ca3af; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .tab-btn.active-green { background: #10b981; color: #fff; }
+  .tab-btn.active-violet { background: #7c3aed; color: #fff; }
+  .tab-icon { font-size: 15px; }
+
+  /* Scroll area */
+  .scroll { flex: 1; overflow-y: auto; padding: 8px 12px 40px; -webkit-overflow-scrolling: touch; }
+  .description { font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 10px; line-height: 1.6; }
+
+  /* Input */
+  .input-wrapper { display: flex; align-items: flex-end; gap: 8px; background: #fff; border-radius: 16px; border: 2px solid #a7f3d0; padding: 12px; margin-bottom: 14px; }
+  .input-wrapper.keep { border-color: #c4b5fd; }
+  .memo-input { flex: 1; font-size: 15px; color: #1f2937; line-height: 1.5; border: none; outline: none; resize: none; background: transparent; font-family: inherit; min-height: 44px; max-height: 100px; }
+  .memo-input::placeholder { color: #9ca3af; }
+  .add-btn { border: none; border-radius: 12px; padding: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; transition: transform 0.1s; flex-shrink: 0; }
+  .add-btn:active { transform: scale(0.92); }
+  .add-btn.vanish { background: #10b981; color: #fff; }
+  .add-btn.keep { background: #7c3aed; color: #fff; }
+  .add-btn:disabled { opacity: 0.3; }
+
+  /* Memo list */
+  .memo-list { display: flex; flex-direction: column; gap: 10px; }
+
+  /* Vanish card */
+  .vanish-card { border-radius: 16px; border: 2px solid; padding: 14px; transition: opacity 0.3s, transform 0.3s; }
+  .vanish-card.level-green { background: #f0fdf4; border-color: #a7f3d0; }
+  .vanish-card.level-amber { background: #fffbeb; border-color: #fcd34d; }
+  .vanish-card.level-red   { background: #fff1f2; border-color: #fca5a5; }
+  .timer-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; margin-bottom: 10px; font-size: 12px; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 1px; }
+  .level-green .timer-badge { background: #d1fae5; color: #059669; }
+  .level-amber .timer-badge { background: #fef3c7; color: #d97706; }
+  .level-red   .timer-badge { background: #ffe4e6; color: #e11d48; }
+  .memo-text { font-size: 15px; color: #1f2937; line-height: 1.55; font-weight: 400; margin-bottom: 12px; word-break: break-all; }
+  .card-actions { display: flex; gap: 8px; }
+  .keep-btn { display: flex; align-items: center; gap: 5px; background: #7c3aed; color: #fff; border: none; border-radius: 12px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
+  .keep-btn:active { transform: scale(0.95); }
+  .delete-btn { display: flex; align-items: center; gap: 5px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
+  .delete-btn:active { transform: scale(0.95); }
+
+  /* Keep card */
+  .keep-card { background: #f5f3ff; border-radius: 16px; border: 2px solid #ddd6fe; padding: 14px; }
+  .keep-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .rescued-badge { display: inline-flex; align-items: center; gap: 4px; background: #ede9fe; color: #7c3aed; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
+
+  /* Empty */
+  .empty-state { text-align: center; padding: 48px 20px; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; }
+  .empty-emoji { font-size: 36px; margin-bottom: 8px; }
+  .empty-title { font-size: 14px; color: #6b7280; font-weight: 600; }
+  .empty-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 999px; white-space: nowrap; z-index: 100; opacity: 0; transition: opacity 0.2s; pointer-events: none; font-family: inherit; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div>
+      <div class="header-title">消えメモ</div>
+      <div class="header-sub">KEEP &amp; VANISH</div>
+    </div>
+    <div class="header-counts">
+      <div class="count-green"><span id="vanish-count">0</span><span class="count-label"> 件消去中</span></div>
+      <div class="count-violet"><span id="keep-count">0</span><span class="count-label"> 件保持中</span></div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active-green" id="tab-vanish" onclick="switchTab('vanish')">
+      <span class="tab-icon">⏱</span>消去メモ
+    </button>
+    <button class="tab-btn" id="tab-keep" onclick="switchTab('keep')">
+      <span class="tab-icon">🔖</span>保持メモ
+    </button>
+  </div>
+
+  <div class="scroll" id="content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Storage ──────────────────────────────────────────────────────────────────
+function load(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } }
+function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let tab = 'vanish';
+let vanishMemos = load('kiememo_vanish').filter(m => m.expiresAt > Date.now());
+let keepMemos   = load('kiememo_keep');
+let idCounter   = Date.now();
+const uid = () => (++idCounter).toString(36);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function pad(n) { return String(n).padStart(2, '0'); }
+function formatCountdown(ms) {
+  if (ms <= 0) return '00:00:00';
+  const s = Math.floor(ms / 1000);
+  return `${pad(Math.floor(s/3600))}:${pad(Math.floor((s%3600)/60))}:${pad(s%60)}`;
+}
+function urgencyLevel(ms) {
+  const r = ms / (24*3600*1000);
+  return r > 0.5 ? 'green' : r > 0.2 ? 'amber' : 'red';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function updateCounts() {
+  const active = vanishMemos.filter(m => m.expiresAt > Date.now());
+  document.getElementById('vanish-count').textContent = active.length;
+  document.getElementById('keep-count').textContent = keepMemos.length;
+}
+
+// ── Timers: update all countdown badges every second ─────────────────────────
+setInterval(() => {
+  document.querySelectorAll('[data-timer]').forEach(el => {
+    const expAt = parseInt(el.dataset.timer);
+    const rem = expAt - Date.now();
+    el.textContent = formatCountdown(rem);
+    // Update card level class
+    const card = el.closest('.vanish-card');
+    if (card) {
+      card.classList.remove('level-green','level-amber','level-red');
+      card.classList.add('level-' + urgencyLevel(rem));
+    }
+    if (rem <= 0) render();
+  });
+  updateCounts();
+}, 1000);
+
+// Auto-purge every 60s
+setInterval(() => {
+  const before = vanishMemos.length;
+  vanishMemos = vanishMemos.filter(m => m.expiresAt > Date.now());
+  if (vanishMemos.length !== before) { save('kiememo_vanish', vanishMemos); render(); }
+}, 60000);
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+function addMemo() {
+  const inp = document.getElementById('memo-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  if (tab === 'vanish') {
+    vanishMemos.unshift({ id: uid(), text, expiresAt: Date.now() + 24*3600*1000 });
+    save('kiememo_vanish', vanishMemos);
+  } else {
+    keepMemos.unshift({ id: uid(), text, savedFrom: 'keep' });
+    save('kiememo_keep', keepMemos);
+  }
+  inp.value = '';
+  inp.style.height = 'auto';
+  inp.focus();
+  render();
+}
+
+function keepMemo(id) {
+  const idx = vanishMemos.findIndex(m => m.id === id);
+  if (idx === -1) return;
+  const memo = vanishMemos.splice(idx, 1)[0];
+  keepMemos.unshift({ id: uid(), text: memo.text, savedFrom: 'vanish' });
+  save('kiememo_vanish', vanishMemos);
+  save('kiememo_keep', keepMemos);
+  showToast('✅ 保持メモに移動しました');
+  render();
+}
+
+function deleteMemo(id, type) {
+  if (!confirm('このメモを削除しますか？')) return;
+  if (type === 'vanish') {
+    vanishMemos = vanishMemos.filter(m => m.id !== id);
+    save('kiememo_vanish', vanishMemos);
+  } else {
+    keepMemos = keepMemos.filter(m => m.id !== id);
+    save('kiememo_keep', keepMemos);
+  }
+  render();
+}
+
+function switchTab(t) {
+  tab = t;
+  document.getElementById('tab-vanish').className = 'tab-btn' + (t==='vanish' ? ' active-green' : '');
+  document.getElementById('tab-keep').className   = 'tab-btn' + (t==='keep'   ? ' active-violet' : '');
+  render();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  updateCounts();
+  const content = document.getElementById('content');
+
+  if (tab === 'vanish') {
+    const active = vanishMemos.filter(m => m.expiresAt > Date.now());
+    const cards = active.length === 0
+      ? `<div class="empty-state"><div class="empty-emoji">💨</div><div class="empty-title">消去メモはありません</div><div class="empty-hint">上の入力欄からメモを追加してください</div></div>`
+      : active.map(m => {
+          const rem = m.expiresAt - Date.now();
+          const lv = urgencyLevel(rem);
+          return `<div class="vanish-card level-${lv}" id="card-${m.id}">
+            <div class="timer-badge">⏱ <span data-timer="${m.expiresAt}">${formatCountdown(rem)}</span></div>
+            <div class="memo-text">${escHtml(m.text)}</div>
+            <div class="card-actions">
+              <button class="keep-btn" onclick="keepMemo('${m.id}')">🔖 残す（Keep）</button>
+              <button class="delete-btn" onclick="deleteMemo('${m.id}','vanish')">🗑 削除</button>
+            </div>
+          </div>`;
+        }).join('');
+
+    content.innerHTML = `
+      <div class="description">24時間で自動消滅。残したいメモは「残す（Keep）」で保持メモへ。</div>
+      <div class="input-wrapper" id="input-wrap">
+        <textarea class="memo-input" id="memo-input" placeholder="ここに今日だけのメモを記入…" rows="2"></textarea>
+        <button class="add-btn vanish" onclick="addMemo()">＋</button>
+      </div>
+      <div class="memo-list">${cards}</div>`;
+  } else {
+    const cards = keepMemos.length === 0
+      ? `<div class="empty-state"><div class="empty-emoji">📌</div><div class="empty-title">保持メモはありません</div><div class="empty-hint">消去メモから「残す」か、上から追加してください</div></div>`
+      : keepMemos.map(m => `
+          <div class="keep-card">
+            <div class="memo-text">${escHtml(m.text)}</div>
+            <div class="keep-card-footer">
+              ${m.savedFrom==='vanish' ? '<span class="rescued-badge">🔖 消えメモから保存</span>' : '<span></span>'}
+              <button class="delete-btn" onclick="deleteMemo('${m.id}','keep')">🗑 削除</button>
+            </div>
+          </div>`).join('');
+
+    content.innerHTML = `
+      <div class="description">削除するまでずっと保存。消去メモから昇格したメモも表示されます。</div>
+      <div class="input-wrapper keep" id="input-wrap">
+        <textarea class="memo-input" id="memo-input" placeholder="ずっと残しておきたいメモを記入…" rows="2"></textarea>
+        <button class="add-btn keep" onclick="addMemo()">＋</button>
+      </div>
+      <div class="memo-list">${cards}</div>`;
+  }
+
+  // Auto-resize textarea
+  const inp = document.getElementById('memo-input');
+  if (inp) {
+    inp.addEventListener('input', () => {
+      inp.style.height = 'auto';
+      inp.style.height = inp.scrollHeight + 'px';
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addMemo(); }
+    });
+  }
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+render();
+</script>
+</body>
+</html>
